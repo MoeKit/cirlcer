@@ -4,6 +4,7 @@
 
         var settings = $.extend({
             // These are the defaults.
+            startdegree: 0,
             fgcolor: "#556b2f",
             bgcolor: "#eee",
             fill: false,
@@ -15,11 +16,14 @@
             iconsize: '20px',
             iconcolor: '#999',
             border: 'default',
-            complete: null
+            complete: null,
+            bordersize: 10
         }, options);
 
         return this.each(function () {
-            var customSettings = ["fgcolor", "bgcolor", "fill", "width", "dimension", "fontsize", "animationstep", "endPercent", "icon", "iconcolor", "iconsize", "border"];
+
+            var customSettings = ["fgcolor", "bgcolor", "fill", "width", "dimension", "fontsize", "animationstep", "endPercent", "icon", "iconcolor", "iconsize", "border", "startdegree", "bordersize"];
+
             var customSettingsObj = {};
             var icon = '';
             var endPercent = 0;
@@ -89,11 +93,12 @@
             $(this).width(customSettingsObj.dimension + 'px');
 
             var canvas = $('<canvas></canvas>').attr({
-			                width: customSettingsObj.dimension,
-			                height: customSettingsObj.dimension
-			            }).appendTo($(this)).get(0);
+                width: customSettingsObj.dimension,
+                height: customSettingsObj.dimension
+            }).appendTo($(this)).get(0);
 
             var context = canvas.getContext('2d');
+            var container = $(canvas).parent();
             var x = canvas.width / 2;
             var y = canvas.height / 2;
             var degrees = customSettingsObj.percent * 360.0;
@@ -108,6 +113,7 @@
             var quart = Math.PI / 2;
             var type = '';
             var fireCallback = true;
+            var additionalAngelPI = (customSettingsObj.startdegree / 180) * Math.PI;
 
             if ($(this).data('type') != undefined) {
                 type = $(this).data('type');
@@ -115,14 +121,32 @@
                 if (type == 'half') {
                     startAngle = 2.0 * Math.PI;
                     endAngle = 3.13;
-                    circ = Math.PI * 1.0;
+                    circ = Math.PI;
                     quart = Math.PI / 0.996;
                 }
             }
 
+            //Run function when browser resizes
+            $(window).resize(respondCanvas);
+
+            function respondCanvas() {
+                $(canvas).attr('width', $(container).width()); //max width
+
+                if(type == 'half') {
+                    $(canvas).attr('height', $(container).height() / 2); //max height
+                } else {
+                    $(canvas).attr('height', $(container).height()); //max height
+                }
+
+                //Call a function to redraw other content (texts, images etc)
+            }
+
+            //Initial call 
+            respondCanvas();
+
             /**
              * adds text to circle
-             * 
+             *
              * @param obj
              * @param cssClass
              * @param lineHeight
@@ -141,7 +165,7 @@
 
             /**
              * adds info text to circle
-             * 
+             *
              * @param obj
              * @param factor
              */
@@ -150,8 +174,9 @@
                     .appendTo(obj)
                     .addClass('circle-info-half')
                     .css(
-                    'line-height', (customSettingsObj.dimension * factor) + 'px'
-                );
+                        'line-height', (customSettingsObj.dimension * factor) + 'px'
+                    )
+                    .text(info);
             }
 
             /**
@@ -168,7 +193,7 @@
 
                     if (attribute == 'fill' && obj.data('fill') != undefined) {
                         fill = true;
-                    } 
+                    }
                 });
             }
 
@@ -177,13 +202,14 @@
              * @param current
              */
             function animate(current) {
+
                 context.clearRect(0, 0, canvas.width, canvas.height);
 
                 context.beginPath();
                 context.arc(x, y, radius, endAngle, startAngle, false);
 
-                context.lineWidth = customSettingsObj.width + 1;
-                
+                context.lineWidth = customSettingsObj.bordersize + 1;
+
                 context.strokeStyle = customSettingsObj.bgcolor;
                 context.stroke();
 
@@ -193,13 +219,13 @@
                 }
 
                 context.beginPath();
-                context.arc(x, y, radius, -(quart), ((circ) * current) - quart, false);
+                context.arc(x, y, radius, -(quart) + additionalAngelPI, ((circ) * current) - quart + additionalAngelPI, false);
 
                 if (customSettingsObj.border == 'outline') {
-                	context.lineWidth = customSettingsObj.width + 13;
-                } else if(customSettingsObj.border == 'inline') {
-                	context.lineWidth = customSettingsObj.width - 13;
-                } 
+                    context.lineWidth = customSettingsObj.width + 13;
+                } else if (customSettingsObj.border == 'inline') {
+                    context.lineWidth = customSettingsObj.width - 13;
+                }
 
                 context.strokeStyle = customSettingsObj.fgcolor;
                 context.stroke();
@@ -211,12 +237,12 @@
                     }, obj);
                 }
 
-                if(curPerc == endPercent && fireCallback && typeof(options) != "undefined") {
-                	if($.isFunction( options.complete )) {
-		            	options.complete();
+                if (curPerc == endPercent && fireCallback && typeof(options) != "undefined") {
+                    if ($.isFunction(options.complete)) {
+                        options.complete();
 
-		            	fireCallback = false;
-		            }
+                        fireCallback = false;
+                    }
                 }
             }
 
